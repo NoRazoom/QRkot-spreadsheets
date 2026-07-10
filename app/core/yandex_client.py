@@ -1,6 +1,13 @@
 from typing import Optional
+from http import HTTPStatus
+
 import httpx
 from fastapi import HTTPException, status
+
+from app.core.config import settings
+
+
+TIMEOUT = 30.0
 
 
 class YandexDiskClient:
@@ -8,12 +15,15 @@ class YandexDiskClient:
 
     def __init__(self, token: str):
         self.token = token
-        self.base_url = "https://cloud-api.yandex.net/v1/disk"
+        self.base_url = settings.yandex_disk_url
+        self.post_url = f'{self.base_url}{settings.yandex_post_url}'
+        self.publish_url = f'{self.base_url}{settings.yandex_publish}'
+        self.get_url = f'{self.base_url}{settings.yandex_get_url}'
         self.headers = {"Authorization": f"OAuth {token}"}
         self._client: Optional[httpx.AsyncClient] = None
 
     async def __aenter__(self):
-        self._client = httpx.AsyncClient(timeout=30.0)
+        self._client = httpx.AsyncClient(timeout=TIMEOUT)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -30,7 +40,7 @@ class YandexDiskClient:
         file_path = f"disk:/{folder}/{title}.xlsx"
 
         response = await self._client.get(
-            f"{self.base_url}/resources/upload",
+            self.post_url,
             headers=self.headers,
             params={"path": file_path, "overwrite": "true"}
         )
@@ -58,14 +68,14 @@ class YandexDiskClient:
     async def publish_file(self, file_path: str) -> str:
         """Делает файл публичным и возвращает ссылку"""
         response = await self._client.put(
-            f"{self.base_url}/resources/publish",
+            self.publish_url,
             headers=self.headers,
             params={"path": file_path}
         )
         response.raise_for_status()
 
         response = await self._client.get(
-            f"{self.base_url}/resources",
+            self.get_url,
             headers=self.headers,
             params={"path": file_path}
         )
@@ -86,12 +96,12 @@ class YandexDiskClient:
         """Создаёт папку, если её нет"""
         try:
             await self._client.put(
-                f"{self.base_url}/resources",
+                self.get_url,
                 headers=self.headers,
                 params={"path": f"disk:/{folder}"}
             )
         except httpx.HTTPStatusError as e:
-            if e.response.status_code != 409:
+            if e.response.status_code != HTTPStatus.CONFLICT:
                 raise
 
 

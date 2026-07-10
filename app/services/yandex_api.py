@@ -8,12 +8,20 @@ from app.core.yandex_client import YandexDiskClient
 from app.core.config import settings
 
 
+SEC_IN_HOUR = 3600
+MIN_IN_HOUR = 60
+
+WIDTH_A = 25
+WIDTH_B = 10
+WIDTH_C = 30
+
+
 def format_time_delta(delta):
     final_str = ''
     if delta.days:
         final_str = f'{delta.days} дн. '
-    hours, remainder = divmod(delta.seconds, 3600)
-    minutes, _ = divmod(remainder, 60)
+    hours, remainder = divmod(delta.seconds, SEC_IN_HOUR)
+    minutes, _ = divmod(remainder, MIN_IN_HOUR)
     final_str += f'{hours} ч. {minutes} мин.'
     return final_str
 
@@ -58,13 +66,12 @@ async def create_simple_report(
     worksheet.merge_range(f'A{last_row + 2}:C{last_row + 2}',
                           f'Итого: {len(projects)} проектов.', bold_format)
 
-    worksheet.set_column('A:A', 25)
-    worksheet.set_column('B:B', 20)
-    worksheet.set_column('C:C', 30)
+    worksheet.set_column('A:A', WIDTH_A)
+    worksheet.set_column('B:B', WIDTH_B)
+    worksheet.set_column('C:C', WIDTH_C)
 
     workbook.close()
     output.seek(0)
 
     await yandex_client.upload_file(upload_url, output.getvalue())
-    pub_link = await yandex_client.publish_file(file_path)
-    return pub_link
+    return await yandex_client.publish_file(file_path)

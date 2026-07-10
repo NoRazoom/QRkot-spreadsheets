@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     first_superuser_password: Optional[str] = None
     yandex_disk_token: Optional[str] = None
     report_format: str = "%Y/%m/%d %H:%M:%S"
+    yandex_disk_url: str | None = None
+    yandex_post_url: str | None = None
+    yandex_publish: str | None = None
+    yandex_get_url: str | None = None
 
     model_config = SettingsConfigDict(env_file='.env')
 
